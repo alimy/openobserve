@@ -1000,7 +1000,9 @@ async fn values_v1(
         .instrument(http_span)
         .await;
         let resp_search = match search_res {
-            Ok(res) => res,
+            Ok(res) => Some(res),
+            // field not found would be when that field was not ingested in the duration
+            Err(errors::Error::ErrorCode(errors::ErrorCodes::SearchFieldNotFound(_))) => None,
             Err(err) => {
                 http_report_metrics(start, org_id, stream_type, stream_name, "500", "_values/v1");
                 log::error!("search values error: {:?}", err);
@@ -1025,7 +1027,9 @@ async fn values_v1(
                 });
             }
         };
-        query_results.push((field.to_string(), resp_search));
+        if let Some(res) = resp_search {
+            query_results.push((field.to_string(), res));
+        }
     }
 
     let mut resp = config::meta::search::Response::default();
