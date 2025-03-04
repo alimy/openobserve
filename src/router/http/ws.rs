@@ -15,7 +15,7 @@
 
 use std::{str::FromStr, sync::Arc};
 
-use actix_web::{rt, web, Error, HttpRequest, HttpResponse};
+use actix_web::{Error, HttpRequest, HttpResponse, rt, web};
 use actix_ws::{CloseCode, CloseReason, Message};
 use config::get_config;
 use futures_util::{SinkExt, StreamExt};
