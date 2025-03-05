@@ -1,30 +1,41 @@
-mod config;
-mod connection;
-mod error;
-mod handler;
-mod message;
-mod pool;
-mod session;
-mod types;
-
 use std::sync::Arc;
 
-pub use config::WsConfig;
-pub use error::WsResult;
-pub use handler::WsHandler;
-pub use pool::QuerierConnectionPool;
-pub use session::SessionManager;
+use once_cell::sync::OnceCell;
 
-pub async fn init() -> WsResult<Arc<WsHandler>> {
-    let config = WsConfig::default();
-    let session_manager = Arc::new(SessionManager::new());
-    let connection_pool = Arc::new(QuerierConnectionPool::new(config));
-    let handler = Arc::new(WsHandler::new(session_manager, connection_pool.clone()));
+mod conn;
+mod error;
+mod manager;
+mod message_bus;
+mod types;
 
-    // Start connection maintenance task
-    tokio::spawn(async move {
-        connection_pool.maintain_connections().await;
-    });
+pub use conn::{ClientRouterConnection, HealthMonitor, RouterQuerierConnection};
+pub use error::{WsError, WsResult};
+pub use manager::RouterManager;
+pub use message_bus::RouterMessageBus;
+pub use types::{Event, WsMessage};
 
-    Ok(handler)
+static ROUTER_MANAGER: OnceCell<Arc<RouterManager>> = OnceCell::new();
+
+pub async fn init() -> WsResult<()> {
+    let message_bus = Arc::new(RouterMessageBus::new());
+    let router_manager = Arc::new(RouterManager::new(message_bus));
+
+    // Check if the ROUTER_MANAGER is already set
+    if ROUTER_MANAGER.get().is_some() {
+        return Ok(());
+    }
+
+    // Set the ROUTER_MANAGER if not already set
+    ROUTER_MANAGER
+        .set(router_manager)
+        .map_err(|_| WsError::Connection("Failed to set ROUTER_MANAGER".into()))?;
+
+    Ok(())
+}
+
+pub fn get_router_manager() -> Arc<RouterManager> {
+    ROUTER_MANAGER
+        .get()
+        .expect("RouterManager not initialized")
+        .clone()
 }

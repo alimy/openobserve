@@ -1,46 +1,31 @@
-use actix_web::{error::ResponseError, http::StatusCode};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum WsError {
     #[error("Connection error: {0}")]
-    ConnectionError(String),
-
-    #[error("Session error: {0}")]
-    SessionError(String),
-
-    #[error("Session not found: {0}")]
-    SessionNotFound(String),
-
+    Connection(String),
     #[error("Message error: {0}")]
-    MessageError(String),
-
-    #[error("Querier not available: {0}")]
-    QuerierNotAvailable(String),
-
-    #[error("Circuit breaker open for querier: {0}")]
-    CircuitBreakerOpen(String),
-
-    #[error("Timeout error: {0}")]
-    Timeout(String),
-
-    #[error(transparent)]
+    Message(String),
+    #[error("Send error: {0}")]
+    SendError(String),
+    #[error("Receive error: {0}")]
+    ReceiveError(String),
+    #[error("Serialization error: {0}")]
+    Serialization(#[from] serde_json::Error),
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("WebSocket error: {0}")]
+    WebSocket(#[from] actix_ws::ProtocolError),
+    #[error("Actix error: {0}")]
+    Actix(#[from] actix_web::Error),
+    #[error("Other error: {0}")]
     Other(#[from] anyhow::Error),
 }
 
-impl ResponseError for WsError {
-    fn status_code(&self) -> StatusCode {
-        match self {
-            WsError::ConnectionError(_) => StatusCode::SERVICE_UNAVAILABLE,
-            WsError::SessionError(_) => StatusCode::BAD_REQUEST,
-            WsError::SessionNotFound(_) => StatusCode::BAD_REQUEST,
-            WsError::MessageError(_) => StatusCode::BAD_REQUEST,
-            WsError::QuerierNotAvailable(_) => StatusCode::SERVICE_UNAVAILABLE,
-            WsError::CircuitBreakerOpen(_) => StatusCode::SERVICE_UNAVAILABLE,
-            WsError::Timeout(_) => StatusCode::REQUEST_TIMEOUT,
-            WsError::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
-        }
+pub type WsResult<T> = Result<T, WsError>;
+
+impl From<WsError> for actix_web::Error {
+    fn from(err: WsError) -> Self {
+        actix_web::error::ErrorInternalServerError(err.to_string())
     }
 }
-
-pub type WsResult<T> = Result<T, WsError>;

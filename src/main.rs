@@ -472,6 +472,10 @@ async fn main() -> Result<(), anyhow::Error> {
 
     log::info!("server stopped");
 
+    // Initialize router services
+    // TODO: only if current node is router
+    router::http::init_ws_v2_router().await?;
+
     Ok(())
 }
 

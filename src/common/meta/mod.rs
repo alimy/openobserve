@@ -29,3 +29,4 @@ pub mod syslog;
 pub mod telemetry;
 pub mod traces;
 pub mod user;
+pub mod websocket_v2;
