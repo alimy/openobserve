@@ -193,7 +193,7 @@ pub async fn ingest(
 
         if executable_pipeline.is_some() {
             // handle record's timestamp fist in case record is sent to remote destination
-            if let Err(e) = handle_timestamp(&mut item, min_ts) {
+            if let Err(e) = handle_timestamp(&mut item, min_ts, false) {
                 stream_status.status.failed += 1;
                 stream_status.status.error = e.to_string();
                 metrics::INGEST_ERRORS
@@ -215,7 +215,7 @@ pub async fn ingest(
             let mut res = flatten::flatten_with_level(item, cfg.limit.ingest_flatten_level)?;
 
             // handle timestamp
-            let timestamp = match handle_timestamp(&mut res, min_ts) {
+            let timestamp = match handle_timestamp(&mut res, min_ts, true) {
                 Ok(ts) => ts,
                 Err(e) => {
                     stream_status.status.failed += 1;
@@ -425,20 +425,52 @@ pub async fn ingest(
     ))
 }
 
-pub fn handle_timestamp(value: &mut json::Value, min_ts: i64) -> Result<i64, anyhow::Error> {
+/// Handles timestamp extraction and standardization from JSON log data.
+///
+/// - For flattened JSON: Looks for '_timestamp' field only
+/// - For non-flattened JSON: Searches for any field containing "timestamp"
+/// - If no timestamp found: Uses current UTC time
+/// - If timestamp < min_ts: Returns error for outdated data
+/// - Always standardizes the output by setting '_timestamp' field in the JSON
+pub fn handle_timestamp(
+    value: &mut json::Value,
+    min_ts: i64,
+    flattened: bool,
+) -> Result<i64, anyhow::Error> {
     let local_val = value
         .as_object_mut()
         .ok_or_else(|| anyhow::Error::msg("Value is not an object"))?;
-    let timestamp = match local_val.get(TIMESTAMP_COL_NAME) {
+    let (timestamp, field_to_be_replaced) = match local_val.get(TIMESTAMP_COL_NAME) {
         Some(v) => match parse_timestamp_micro_from_value(v) {
-            Ok(t) => t,
+            Ok(t) => (t, None),
             Err(_) => return Err(anyhow::Error::msg("Can't parse timestamp")),
         },
-        None => Utc::now().timestamp_micros(),
+        None => {
+            if flattened {
+                (Utc::now().timestamp_micros(), None)
+            } else {
+                match local_val.keys().find(|k| k.contains("timestamp")) {
+                    None => (Utc::now().timestamp_micros(), None),
+                    Some(key) => {
+                        match local_val
+                            .get(key)
+                            .map(|v| parse_timestamp_micro_from_value(v))
+                        {
+                            Some(Ok(ts)) => (ts, Some(key.clone())),
+                            Some(_) => return Err(anyhow::Error::msg("Can't parse timestamp")),
+                            None => (Utc::now().timestamp_micros(), None),
+                        }
+                    }
+                }
+            }
+        }
     };
     // check ingestion time
     if timestamp < min_ts {
         return Err(get_upto_discard_error());
+    }
+    if let Some(filed_name) = field_to_be_replaced {
+        local_val.remove(&filed_name);
     }
     local_val.insert(
         TIMESTAMP_COL_NAME.to_string(),

@@ -143,7 +143,7 @@ pub async fn ingest(msg: &str, addr: SocketAddr) -> Result<HttpResponse> {
 
     if executable_pipeline.is_some() {
         // handle record's timestamp fist in case record is sent to remote destination
-        if let Err(e) = handle_timestamp(&mut value, min_ts) {
+        if let Err(e) = handle_timestamp(&mut value, min_ts, false) {
             stream_status.status.failed += 1;
             stream_status.status.error = e.to_string();
             metrics::INGEST_ERRORS
@@ -168,7 +168,7 @@ pub async fn ingest(msg: &str, addr: SocketAddr) -> Result<HttpResponse> {
         value = flatten::flatten_with_level(value, cfg.limit.ingest_flatten_level).unwrap();
 
         // handle timestamp
-        let timestamp = match handle_timestamp(&mut value, min_ts) {
+        let timestamp = match handle_timestamp(&mut value, min_ts, true) {
             Ok(ts) => ts,
             Err(e) => {
                 stream_status.status.failed += 1;
