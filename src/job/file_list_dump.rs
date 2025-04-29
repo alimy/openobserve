@@ -209,6 +209,7 @@ pub async fn run() -> Result<(), anyhow::Error> {
                 !ongoing.contains(id)
             })
             .collect::<Vec<_>>();
+        log::info!("pending dump jobs : {:?}", pending);
         // it is important to drop this here, as the worker threads will
         // also write lock this in order to remove successful jobs
         // if we don't drop, we can deadlock if the queue gets full, because
@@ -252,10 +253,14 @@ async fn dump(job_id: i64, org: &str, stream: &str, offset: i64) -> Result<(), a
 
     if lock_stream(org, stream_type, stream).await.is_none() {
         // someone else is processing this.
+        log::warn!("skipping job {org}/{stream_type}/{stream} {job_id} as locked by someone else");
         return Ok(());
     }
     let files = infra::file_list::get_entries_in_range(org, Some(stream), start, end, None).await?;
     if files.is_empty() {
+        log::info!(
+            "skipping job {org}/{stream_type}/{stream} {job_id} as file list empty in {start} -> {end}"
+        );
         if let Err(e) = infra::file_list::set_job_dumped_status(job_id, true).await {
             log::error!("error in setting dumped = true for job with id {job_id}, error : {e}");
         }
@@ -373,6 +378,7 @@ async fn generate_dump(
 ) -> Result<(), anyhow::Error> {
     // if there are no files to dump, no point in making a dump file
     if files.is_empty() {
+        log::warn!("skipping job {org}/{stream} {job_id} as file list empty");
         return Ok(());
     }
 
