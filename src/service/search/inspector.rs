@@ -61,9 +61,12 @@ impl Default for SearchInspectorFieldsBuilder {
 
 impl SearchInspectorFieldsBuilder {
     pub fn new() -> Self {
-        Self {
+        let mut ret = Self {
             fields: Default::default(),
-        }
+        };
+        ret.fields.cluster = Some(LOCAL_NODE.get_cluster_name());
+        ret.fields.region = Some(LOCAL_NODE.get_region());
+        ret
     }
 
     pub fn node_name(mut self, value: String) -> Self {
@@ -98,6 +101,18 @@ impl SearchInspectorFieldsBuilder {
 
     pub fn time_range(mut self, value: (String, String)) -> Self {
         self.fields.time_range = Some(value);
+        self
+    }
+
+    #[allow(unused)]
+    pub fn cluster(mut self, value: String) -> Self {
+        self.fields.cluster = Some(value);
+        self
+    }
+
+    #[allow(unused)]
+    pub fn region(mut self, value: String) -> Self {
+        self.fields.region = Some(value);
         self
     }
 
