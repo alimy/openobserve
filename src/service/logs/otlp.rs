@@ -193,11 +193,9 @@ pub async fn handle_request(
                 };
 
                 rec["body"] = get_val(&log_record.body.as_ref());
-                log_record.attributes.iter().for_each(|local_attr| {
-                    let mut key = local_attr.key.clone();
-                    flatten::format_key(&mut key);
-                    rec[key] = get_val_with_type_retained(&local_attr.value.as_ref());
-                });
+                for item in &log_record.attributes {
+                    rec[item.key.as_str()] = get_val_with_type_retained(&item.value.as_ref());
+                }
                 rec["dropped_attributes_count"] = log_record.dropped_attributes_count.into();
 
                 match TraceId::from_bytes(
