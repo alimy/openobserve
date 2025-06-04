@@ -3646,6 +3646,7 @@ export default defineComponent({
       getColumnNames,
       getSearchObj,
       toggleHistogram,
+      createSavedViews,
     };
   },
   computed: {
