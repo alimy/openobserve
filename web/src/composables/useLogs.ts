@@ -6722,7 +6722,17 @@ const useLogs = () => {
     sendCancelSearchMessage,
     isDistinctQuery,
     isWithQuery,
-    getStream
+    getStream,
+    getQueryPartitions,
+    getPaginatedData,
+    updateFieldValues,
+    getHistogramTitle,
+    processPostPaginationData,
+    fnHistogramParsedSQL,
+    parser,
+    router,
+    $q,
+    getPageCount,
   };
 };
 
