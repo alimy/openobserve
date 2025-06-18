@@ -1734,6 +1734,10 @@ export default defineComponent({
       isStreamingEnabled,
       setCommunicationMethod,
       sendToAiChat,
+      processInterestingFiledInSQLQuery,
+      removeFieldByName,
+      setFieldsAndConditions,
+      dashboardPanelData
     };
   },
   computed: {
