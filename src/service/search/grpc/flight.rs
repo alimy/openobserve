@@ -193,10 +193,17 @@ pub async fn search(
     let mut idx_optimize_rule: Option<InvertedIndexOptimizeMode> =
         req.index_info.index_optimize_mode.clone().map(|x| x.into());
 
+    log::info!(
+        "[trace_id {trace_id}] flight->search: start creating tables, file list num: {}",
+        req.search_info.file_id_list.len()
+    );
+
     // get all tables
     let mut tables = Vec::new();
     let mut scan_stats = ScanStats::new();
     let file_stats_cache = ctx.runtime_env().cache_manager.get_file_statistic_cache();
+
+    log::info!("[trace_id {trace_id}] flight->search: init file stats cache");
 
     // search in object storage
     let mut tantivy_file_list = Vec::new();
@@ -283,6 +290,7 @@ pub async fn search(
         };
         tables.extend(tbls);
         scan_stats.add(&stats);
+        log::info!("[trace_id {trace_id}] flight->search: created storage parquet table");
     }
 
     // search in WAL parquet
@@ -313,6 +321,7 @@ pub async fn search(
         tables.extend(tbls);
         scan_stats.add(&stats);
     }
+    log::info!("[trace_id {trace_id}] flight->search: created wal parquet table");
 
     // search in WAL memory
     if LOCAL_NODE.is_ingester() {
@@ -339,6 +348,7 @@ pub async fn search(
         tables.extend(tbls);
         scan_stats.add(&stats);
     }
+    log::info!("[trace_id {trace_id}] flight->search: created wal memtable table");
 
     // create a Union Plan to merge all tables
     let start = std::time::Instant::now();

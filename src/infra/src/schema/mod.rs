@@ -84,6 +84,11 @@ pub async fn get_cache(
         return Ok(schema);
     }
 
+    log::warn!(
+        "schema:get_cache: cache miss will read from db, key: {}",
+        key
+    );
+
     // Get from DB without holding any locks
     let db_schema = get_from_db(org_id, stream_name, stream_type).await?;
     // if the schema is empty, return an empty schema , Don't write to cache
