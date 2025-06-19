@@ -70,6 +70,12 @@ pub async fn search_parquet(
         infra::schema::get_settings(&query.org_id, &query.stream_name, query.stream_type)
             .await
             .unwrap_or_default();
+    log::info!(
+        "[trace_id {}] wal->parquet->search: get stream settings, took {} ms",
+        query.trace_id,
+        load_start.elapsed().as_millis(),
+    );
+
     let files = get_file_list(
         query.clone(),
         &stream_settings.partition_keys,
@@ -77,6 +83,13 @@ pub async fn search_parquet(
         search_partition_keys,
     )
     .await?;
+    log::info!(
+        "[trace_id {}] wal->parquet->search: get file list: {}, took {} ms",
+        query.trace_id,
+        files.len(),
+        load_start.elapsed().as_millis(),
+    );
+
     if files.is_empty() {
         return Ok((vec![], ScanStats::new()));
     }
@@ -147,6 +160,13 @@ pub async fn search_parquet(
         return Ok((vec![], scan_stats));
     }
 
+    log::info!(
+        "[trace_id {}] wal->parquet->search: get file metadata: {}, took {} ms",
+        query.trace_id,
+        files.len(),
+        load_start.elapsed().as_millis(),
+    );
+
     // fetch all schema versions, group files by version
     let schema_versions = match infra::schema::get_versions(
         &query.org_id,
@@ -166,6 +186,12 @@ pub async fn search_parquet(
             )));
         }
     };
+    log::info!(
+        "[trace_id {}] wal->parquet->search: get schema versions: {}, took {} ms",
+        query.trace_id,
+        schema_versions.len(),
+        load_start.elapsed().as_millis(),
+    );
     if schema_versions.is_empty() {
         // release all files
         wal::release_files(&lock_files);
