@@ -352,7 +352,11 @@ pub async fn search(
 
     // create a Union Plan to merge all tables
     let start = std::time::Instant::now();
-    let union_table = Arc::new(NewUnionTable::try_new(empty_exec.schema().clone(), tables)?);
+    let union_table = Arc::new(NewUnionTable::try_new(
+        &trace_id,
+        empty_exec.schema().clone(),
+        tables,
+    )?);
 
     let union_exec = union_table
         .scan(
@@ -362,8 +366,11 @@ pub async fn search(
             empty_exec.limit(),
         )
         .await?;
+    log::info!("[trace_id {trace_id}] flight->search: created union table");
+
     let mut rewriter = ReplaceTableScanExec::new(union_exec);
     physical_plan = physical_plan.rewrite(&mut rewriter)?.data;
+    log::info!("[trace_id {trace_id}] flight->search: created physical plan");
 
     if !tantivy_file_list.is_empty() {
         scan_stats.add(&collect_stats(&tantivy_file_list));

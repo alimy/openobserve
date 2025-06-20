@@ -152,7 +152,11 @@ pub async fn merge_parquet_files(
     )
     .await?;
     // register union table
-    let union_table = Arc::new(NewUnionTable::try_new(schema.clone(), tables)?);
+    let union_table = Arc::new(NewUnionTable::try_new(
+        "merge_parquet_files",
+        schema.clone(),
+        tables,
+    )?);
     ctx.register_table("tbl", union_table)?;
 
     let plan = ctx.state().create_logical_plan(&sql).await?;
@@ -260,7 +264,11 @@ pub async fn merge_parquet_files_with_downsampling(
     )
     .await?;
     // register union table
-    let union_table = Arc::new(NewUnionTable::try_new(schema.clone(), tables)?);
+    let union_table = Arc::new(NewUnionTable::try_new(
+        "merge_parquet_files_with_downsampling",
+        schema.clone(),
+        tables,
+    )?);
     ctx.register_table("tbl", union_table)?;
 
     let plan = ctx.state().create_logical_plan(&sql).await?;

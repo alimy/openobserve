@@ -27,14 +27,23 @@ use datafusion::{
 
 #[derive(Debug)]
 pub(crate) struct NewUnionTable {
+    trace_id: String,
     schema: SchemaRef,
     tables: Vec<Arc<dyn TableProvider>>,
 }
 
 impl NewUnionTable {
     /// Create a new in-memory table from the provided schema and record batches
-    pub fn try_new(schema: SchemaRef, tables: Vec<Arc<dyn TableProvider>>) -> Result<Self> {
-        Ok(Self { schema, tables })
+    pub fn try_new(
+        trace_id: &str,
+        schema: SchemaRef,
+        tables: Vec<Arc<dyn TableProvider>>,
+    ) -> Result<Self> {
+        Ok(Self {
+            trace_id: trace_id.to_string(),
+            schema,
+            tables,
+        })
     }
 }
 
@@ -66,9 +75,16 @@ impl TableProvider for NewUnionTable {
             return self.tables[0].scan(state, projection, filters, limit).await;
         }
         let mut table_plans = Vec::new();
-        for table in self.tables.iter() {
+        for (i, table) in self.tables.iter().enumerate() {
+            let start = std::time::Instant::now();
             let plan = table.scan(state, projection, filters, limit).await?;
             table_plans.push(plan);
+            log::info!(
+                "[trace_id {}] scan union table: {}, took: {} ms",
+                self.trace_id,
+                i,
+                start.elapsed().as_millis()
+            );
         }
         Ok(Arc::new(UnionExec::new(table_plans)))
     }
