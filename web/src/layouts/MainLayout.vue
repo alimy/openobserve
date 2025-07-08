@@ -139,7 +139,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             <q-menu
               anchor="bottom middle"
               self="top middle"
-              class="organization-menu"
+              class="organization-menu-o2"
             >
               <q-list style="width: 250px">
                 <q-item style="padding: 0">
@@ -1755,7 +1755,7 @@ body.ai-chat-open {
     transform: rotate(-180deg);
   }
 
-.organization-menu {
+.organization-menu-o2 {
   .org-table {
   td {
     padding: 0;
@@ -1822,6 +1822,6 @@ body.ai-chat-open {
       font-size: 14px;
     }
   }
-}
+  }
 }
 </style>
