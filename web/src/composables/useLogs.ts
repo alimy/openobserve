@@ -6733,6 +6733,7 @@ const useLogs = () => {
     router,
     $q,
     getPageCount,
+    clearSearchObj
   };
 };
 
