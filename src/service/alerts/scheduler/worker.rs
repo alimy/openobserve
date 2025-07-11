@@ -133,14 +133,7 @@ impl SchedulerWorker {
 
     /// Handles a given trigger
     pub async fn handle_trigger(&self, trace_id: &str, trigger: Trigger) -> Result<()> {
-        let trace_id = trace_id.to_owned();
-        // If there is any panic, it should not crash the scheduler worker
-        let handler_job = tokio::spawn(async move { handle_triggers(&trace_id, trigger).await });
-
-        if let Err(e) = handler_job.await {
-            return Err(anyhow::anyhow!("Error in handler: {}", e));
-        }
-
+        handle_triggers(trace_id, trigger).await?;
         Ok(())
     }
 }
