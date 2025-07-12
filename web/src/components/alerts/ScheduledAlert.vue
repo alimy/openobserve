@@ -2246,7 +2246,7 @@ const routeToCreateDestination = () => {
     }
     selectedColumn.value = ""
   };
-  const buildMulitWindowQuery = (sql: any, fn: boolean = false) => {
+  const buildMulitWindowQuery = (sql: any, fn: boolean = false, periodInMicroseconds: number) => {
   const queryToSend: any = [
 
   ];
@@ -2274,8 +2274,8 @@ const routeToCreateDestination = () => {
 
       const endTime = now;
       const startTime = endTime - offsetMicroseconds;
-      individualQuery.start_time = startTime;
-      individualQuery.end_time = endTime;
+      individualQuery.start_time = startTime - periodInMicroseconds;
+      individualQuery.end_time = startTime;
       individualQuery.sql = sql;
       individualQuery.query_fn = fn ? b64EncodeUnicode(vrlFunctionContent.value) : null;
       queryToSend.push(individualQuery);
@@ -2344,7 +2344,7 @@ const routeToCreateDestination = () => {
             query_fn: fn ? b64EncodeUnicode(vrlFunctionContent.value) : null
           }
         ];
-        queryTosend.push(...buildMulitWindowQuery(queryReq.query.sql, fn));
+        queryTosend.push(...buildMulitWindowQuery(queryReq.query.sql, fn,periodInMicroseconds));
         queryReq.query.sql = queryTosend;
         const res = await searchService.search({
           org_identifier: store.state.selectedOrganization.identifier,
